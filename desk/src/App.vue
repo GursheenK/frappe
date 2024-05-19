@@ -6,4 +6,12 @@
       <router-view></router-view>
     </div>
   </div>
+  <!-- For global use -->
+  <IconsTimeless />
+	<IconsEspresso />
 </template>
+
+<script setup>
+import IconsTimeless from "@/components/icons/IconsTimeless.vue"
+import IconsEspresso from "@/components/icons/IconsEspresso.vue"
+</script>
