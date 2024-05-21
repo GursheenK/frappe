@@ -11,3 +11,12 @@ export const config_settings = createResource({
         }
     }
 });
+
+export const default_config = createResource({
+    url: 'frappe.desk.doctype.view_config.view_config.get_default_config',
+    makeParams() {
+        return {
+            doctype: config_name.value,
+        }
+    }
+})

@@ -6,15 +6,15 @@
         showColumnSettings: true,
     }" @update="handleUpdateConfig">
         <template #customControls>
-            <div v-if="config_settings.data" class="flex items-center gap-2">
+            <div class="flex items-center gap-2">
                 <Dropdown :placement="'right'" :options="viewsDropdownOptions">
                     <template #default="{ open }">
-                        <Button :label="config_settings.data?.label">
+                        <Button :label="isDefaultConfig ? default_config.data?.label : config_settings.data?.label">
                             <template #prefix>
-                                <FeatherIcon :name="config_settings.data?.icon" class="h-4" />
+                                <FeatherIcon :name="isDefaultConfig ? 'list' : config_settings.data?.icon" class="h-3.5" />
                             </template>
                             <template #suffix>
-                                <FeatherIcon :name="open ? 'chevron-up' : 'chevron-down'" class="h-4 text-gray-600" />
+                                <FeatherIcon :name="open ? 'chevron-up' : 'chevron-down'" class="h-3.5 text-gray-600" />
                             </template>
                         </Button>
                     </template>
@@ -26,7 +26,7 @@
 </template>
 
 <script setup>
-import { config_name, config_settings } from '@/stores/view';
+import { config_name, config_settings, default_config } from '@/stores/view';
 import { createResource, FeatherIcon, Dropdown, call } from 'frappe-ui';
 import { ref, watch, computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
@@ -52,15 +52,31 @@ const list = createResource({
 
 const list_config = ref({});
 
-const loadList = async() => {
-    await config_settings.fetch();
+const loadList = async(config) => {
     await list.fetch();
-    list_config.value = { rows: list.data, rowKey: "name", columns: config_settings.data.columns, allColumns: config_settings.data.doctype_fields };
+    list_config.value = { 
+        rows: list.data, 
+        rowKey: "name", 
+        columns: config.columns, 
+        allColumns: config.doctype_fields,
+    };
 }
 
-watch(() => route.query.config, (query_config) => {
-    config_name.value = query_config;
-    loadList();
+const isDefaultConfig = ref(true);
+
+watch(() => route.query.config, async(query_config) => {
+    if (!query_config){
+        isDefaultConfig.value = true;
+        config_name.value = route.params.doctype;
+        await default_config.fetch();
+        loadList(default_config.data);
+    }
+    else {
+        isDefaultConfig.value = false;
+        config_name.value = query_config;
+        await config_settings.fetch();
+        loadList(config_settings.data);
+    }
 }, { immediate: true });
 
 const updateConfigResource = createResource({
@@ -97,9 +113,9 @@ const viewsDropdownOptions = computed(() => {
     ]
 
     let saved_views = [];
-    if (config_settings.data?.document_type) {
+    if (route.params.doctype) {
         call('frappe.desk.doctype.view_config.view_config.get_views_for_doctype', {
-            doctype: config_settings.data.document_type
+            doctype: route.params.doctype
         }).then((res) => {
             res.map((v) => {
                 v.name != config_name.value && saved_views.push({

@@ -23,15 +23,25 @@ class ViewConfig(Document):
 	pass
 
 @frappe.whitelist()
+def get_default_config(doctype):
+	meta = frappe.get_meta(doctype)
+	columns = []
+	for field in meta.fields:
+		if field.in_list_view:
+			columns.append({"label": field.label, "key": field.fieldname, "type": field.fieldtype, "width": "10rem"})
+	return {
+		"label": "List",
+		"columns": columns,
+		"doctype_fields": get_doctype_fields(doctype)
+	}
+
+@frappe.whitelist()
 def get_config(config_name):
 	config = frappe.get_doc("View Config", config_name)
-
-	doctype_fields = get_doctype_fields(config.document_type)
-	
 	config_dict = config.as_dict()
 	config_dict.update({
 		"columns": frappe.parse_json(config.columns),
-		"doctype_fields": doctype_fields
+		"doctype_fields": get_doctype_fields(config.document_type),
 	})
 	return config_dict
 
@@ -43,6 +53,8 @@ def get_doctype_fields(doctype):
 		if field.fieldtype in not_allowed_in_list_view:
 			continue
 		doctype_fields.append({"label": field.label, "value": field.fieldname, "type": field.fieldtype})
+	for field in frappe.model.default_fields:
+		doctype_fields.append({"label": meta.get_label(field), "value": field, "type": "Data"})
 	return doctype_fields
 
 @frappe.whitelist()
@@ -55,5 +67,4 @@ def update_config(config_name, new_config):
 
 @frappe.whitelist()
 def get_views_for_doctype(doctype):
-	views = frappe.get_all("View Config", filters={"document_type": doctype}, fields=["name", "label", "icon"])
-	return views
+	return frappe.get_all("View Config", filters={"document_type": doctype}, fields=["name", "label", "icon"])
