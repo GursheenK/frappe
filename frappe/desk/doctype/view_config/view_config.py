@@ -22,7 +22,6 @@ class ViewConfig(Document):
 
 	pass
 
-@frappe.whitelist()
 def get_default_config(doctype):
 	meta = frappe.get_meta(doctype)
 	columns = []
@@ -36,7 +35,9 @@ def get_default_config(doctype):
 	}
 
 @frappe.whitelist()
-def get_config(config_name):
+def get_config(config_name=None, is_default=True):
+	if is_default:
+		return get_default_config(config_name)
 	config = frappe.get_doc("View Config", config_name)
 	config_dict = config.as_dict()
 	config_dict.update({

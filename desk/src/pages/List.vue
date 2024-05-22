@@ -9,9 +9,9 @@
             <div class="flex items-center gap-2">
                 <Dropdown :placement="'right'" :options="viewsDropdownOptions">
                     <template #default="{ open }">
-                        <Button :label="isDefaultConfig ? default_config.data?.label : config_settings.data?.label">
+                        <Button :label="config_settings.data?.label">
                             <template #prefix>
-                                <FeatherIcon :name="isDefaultConfig ? 'list' : config_settings.data?.icon" class="h-3.5" />
+                                <FeatherIcon :name="config_settings.data?.icon || 'list'" class="h-3.5" />
                             </template>
                             <template #suffix>
                                 <FeatherIcon :name="open ? 'chevron-up' : 'chevron-down'" class="h-3.5 text-gray-600" />
@@ -26,7 +26,7 @@
 </template>
 
 <script setup>
-import { config_name, config_settings, default_config } from '@/stores/view';
+import { config_name, config_settings, isDefaultConfig } from '@/stores/view';
 import { createResource, FeatherIcon, Dropdown, call } from 'frappe-ui';
 import { ref, watch, computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
@@ -62,21 +62,17 @@ const loadList = async(config) => {
     };
 }
 
-const isDefaultConfig = ref(true);
-
 watch(() => route.query.config, async(query_config) => {
     if (!query_config){
         isDefaultConfig.value = true;
         config_name.value = route.params.doctype;
-        await default_config.fetch();
-        loadList(default_config.data);
     }
     else {
         isDefaultConfig.value = false;
         config_name.value = query_config;
-        await config_settings.fetch();
-        loadList(config_settings.data);
     }
+    await config_settings.fetch();
+    loadList(config_settings.data);
 }, { immediate: true });
 
 const updateConfigResource = createResource({
@@ -86,6 +82,7 @@ const updateConfigResource = createResource({
 
 const handleUpdateConfig = async(config) => {
     updateConfigResource.submit({ config_name: config_name.value, new_config: config });
+    loadList(config);
 };
 
 // TODO: add default view routes
